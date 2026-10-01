@@ -87,7 +87,7 @@ Tool results are the REST JSON, except that bare-array responses (enterprise org
 | Tool | Parameters | Description |
 |---|---|---|
 | `auth_status` | none | Profile and credit balance (no plan name; infer the tier from `max_results_per_request`) |
-| `public_my_ip` | none | The client IP the API sees for this MCP call (no credit). Equals your IP only if the MCP proxy forwards it |
+| `public_my_ip` | none | Public IP address the FullHunt API sees for the call (no credit) |
 | `public_0day_today_search` | `query` | 0day.today exploit archive search (10/min, 5 results) |
 
 ### Domain and host
@@ -127,7 +127,7 @@ Intel responses are not paginated (up to 100 results, or 10,000 for enterprise).
 ### Global search
 | Tool | Parameters | Description |
 |---|---|---|
-| `global_search` | any of 47 filters (REST also accepts `http.title` and `is_dos_defense`) (`domain`, `host`, `subdomain`, `tld`, `ip`, `tag`, `organization`, `http_title`, `http_favicon_hash`, `http_status_code`, `country_code`, `country`, `city`, `tech`, `product`, `service`, `port`, `asn`, `cloud_provider`, `cloud_region`, `cdn`, `dns_a/aaaa/cname/mx/txt/ptr/ns`, `cert_*` (13), `is_cloud`, `is_live`, `is_resolvable`, `is_cdn`, `has_ipv6`, `has_private_ip`), plus `page?`, `limit?` (≤200) | Whole-database host search; filters ANDed. |
+| `global_search` | any of 47 filters (REST also accepts `http.title` and `is_dos_defense`) (`domain`, `host`, `subdomain`, `tld`, `ip`, `tag`, `organization`, `http_title`, `http_favicon_hash`, `http_status_code`, `country_code`, `country`, `city`, `tech`, `product`, `service`, `port`, `asn`, `cloud_provider`, `cloud_region`, `cdn`, `dns_a/aaaa/cname/mx/txt/ptr/ns`, `cert_*` (13), `is_cloud`, `is_live`, `is_resolvable`, `is_cdn`, `has_ipv6`, `has_private_ip`), plus `page?`, `limit?` (≤200) | Search across all indexed hosts; filters ANDed. |
 
 ### Nexus
 | Tool | Parameters |

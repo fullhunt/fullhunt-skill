@@ -124,7 +124,7 @@ There is no single envelope. Parse per family:
 | domain details / subdomains | `{domain, hosts[], metadata{...}, whois_data, status, message}` |
 | host | host object plus `raw` |
 | intel | `{results[], query, total_query_results, credits}` |
-| global search | `{results[], query, total_query_results, total_pages, page_size, sort, credits}`; results are raw host documents (flat `asn`, `country_code`, `dns_a`…), not the host object |
+| global search | `{results[], query, total_query_results, total_pages, page_size, sort, credits}`; results are flat host records (`asn`, `country_code`, `dns_a`…), not the host object |
 | nexus | `{status, error, data, count}`; ip-lookup is `{result, query, resolved_host, resolvable, other_ips}`; whois lookup is `{domain, whois_data}` |
 | vuln / exploit / advisory / org search | `{response: [...]}` |
 | vuln feed | `{metadata{...}, vulnerabilities[], exploits[], advisories[]}` |
@@ -140,7 +140,7 @@ Some errors are not JSON and break `jq`: 413 (body over 1 MiB) and invalid-JSON 
 
 ## Known API quirks (current behavior; plan around them)
 
-- **Some Nexus failures are HTTP 200 and still charged:** tor/check-ip (invalid IP), cloud-certs/dns-search (query under 3 chars), domain-collection/lookup (not found), company-lookup (under 3 chars or not found). Check the body's `status`.
+- **Some Nexus failures return HTTP 200:** tor/check-ip (invalid IP), cloud-certs/dns-search (query under 3 chars), domain-collection/lookup (not found), company-lookup (under 3 chars or not found). Check the body's `status`.
 - **Intel routes are not paginated.** `page` is ignored; one response holds everything up to 100 (non-enterprise) or 10,000 (enterprise) results.
 - **`/domain/{d}/subdomains?resolvable_only=0` has no effect.** Only resolvable hosts are returned.
 - **Nexus whois/search ORs registrar, nameserver, status and expiry** (`tld` is ANDed). **OEM whois/search ANDs everything.** Use OEM when every condition must hold.
@@ -150,8 +150,7 @@ Some errors are not JSON and break `jq`: 413 (body over 1 MiB) and invalid-JSON 
 - **CVE IDs are case-sensitive** in vulnerability and exploit search: send `CVE-…` uppercase.
 - **Advisory `package` is `ecosystem/name`** (`npm/lodash`); a bare name matches nothing.
 - **POST vuln/exploit/advisory search reads form fields only**; use GET query params (a JSON body is ignored).
-- **Global search silently ignores** `http.title` (use `http_title`), non-numeric `asn`/`port`/`http_status_code`, and string `page`/`limit`.
-- **Domain routes charge before some 404s:** oversized (≥100k hosts) and unresolvable domains return 404 after the credit is taken.
+- **Global search inputs:** use `http_title` (not `http.title`); send `asn`, `port`, `http_status_code`, `page` and `limit` as JSON numbers.
 
 ## Workflow guidance
 

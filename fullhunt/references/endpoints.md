@@ -66,7 +66,7 @@ Response: `{domain, hosts[] (host objects, see §3), metadata, whois_data, statu
 
 **Errors (both):**
 - 400 `invalid_domain` or `credit_limit_reached`; details also returns 400 `redacted_domain_requested` (subdomains returns 404 for redacted domains)
-- 404 `domain_not_found` (also returned for excluded, oversized (≥100k hosts) or unresolvable domains; the oversized and unresolvable 404s are still charged)
+- 404 `domain_not_found` (also returned for excluded, oversized (≥100k hosts) or unresolvable domains)
 - 401
 
 ---
@@ -78,10 +78,10 @@ Response: `{domain, hosts[] (host objects, see §3), metadata, whois_data, statu
 ```bash
 curl -s "$FH_API/host/api.example.com" "${H[@]}" | jq '{ip: .ip_address, ports: .network_ports, live: .is_live, cert_cn: .cert_object.subject_common_name}'
 ```
-Returns the host object below plus `raw` (the untransformed database document). Errors: 404 "resource not found", 400 `credit_limit_reached`.
+Returns the host object below plus `raw` (the full stored host record). Errors: 404 "resource not found", 400 `credit_limit_reached`.
 
 ### Host object
-Used by domain details, host and enterprise assets. (Global search returns raw database documents instead; see §8.)
+Used by domain details, host and enterprise assets. (Global search returns flat host records instead; see §8.)
 
 | Field | Content |
 |---|---|
@@ -113,8 +113,8 @@ Used by domain details, host and enterprise assets. (Global search returns raw d
 - `target`: domain, IP or public CIDR
 - Response: `{status, message, target, type, scan_id, timestamp}` (`type` is always `"domain"`; there is no `deduplicated` field)
 - A repeat of the same target within 24h reuses the existing scan and is not charged.
-- Results land in the database after processing. This triggers **active scanning**.
-- Errors: 400 invalid target; 403 no credits (`{"error": "You have no remaining credits for scan requests"}`); 500 if the scan queue is unavailable.
+- Results become available after the scan completes. This triggers **active scanning**.
+- Errors: 400 invalid target; 403 no credits (`{"error": "You have no remaining credits for scan requests"}`); 500 if scan submission is unavailable.
 
 For enterprise-owned assets see `/enterprise/on-demand-scans` (§10); for OEM see §13.
 
@@ -140,7 +140,7 @@ For enterprise-owned assets see `/enterprise/on-demand-scans` (§10); for OEM se
 - POST accepts a form-encoded `query` only; a JSON body is ignored (400 "Missing required parameter").
 - CVE IDs are matched case-sensitively here and in exploits search: send them uppercase (`CVE-2024-3400`).
 - Response: `{response: [...]}`, NVD records with `cve_id`, `title`, `description`, `published_date`, `last_modified_date`, `cvss_v3_score`, `cvss_v3_vector`, `cvss_v2_score`, `cvss_v2_vector`, `cwes[]`, `cpe_ids[]`, `epss_score`, `epss_percentile`, `is_exploit_available`, `is_kev`, `vuln_status`, `source_identifier`, `cisa_exploit_add`, `cisa_action_due`, `cisa_required_action`, `references[]{url, source, tags[]}`.
-- Backend errors return `{response: []}`, not an error code.
+- A server-side error returns `{response: []}`, not an error code.
 
 ```bash
 curl -s "$FH_API/vulnerability-intelligence/vulnerability-search?query=CVE-2024-3400" "${H[@]}" \
@@ -238,8 +238,8 @@ curl -s "$FH_API/global/search" "${H[@]}" "${J[@]}" \
   -d '{"product": "Citrix-NetScaler", "country_code": "GB", "is_live": true, "limit": 100}' \
   | jq '{total: .total_query_results, pages: .total_pages, hosts: [.results[].host]}'
 ```
-- Response: `{results[] (raw host documents plus `id`: flat `asn`, `organization`, `country_code`, `cloud_provider`, `dns_a`…, raw `cert_object` keys such as `subject_commonname`; no `ip_metadata`/`cloud{}`/`dns{}`; without vulnerabilities, visual_hash or type), query, total_query_results (capped at 10M; 10000 if the count times out), total_pages, page_size, sort ("asset_score" or "natural"), credits}`
-- Ranked sorting has an 8-second budget, then falls back to natural order.
+- Response: `{results[] (flat host records plus `id`: `asn`, `organization`, `country_code`, `cloud_provider`, `dns_a`…, raw `cert_object` keys such as `subject_commonname`; no `ip_metadata`/`cloud{}`/`dns{}`), query, total_query_results (capped at 10M; 10000 if the count times out), total_pages, page_size, sort ("asset_score" or "natural"), credits}`
+- When ranking a large result set takes too long, results come back unranked (`sort: "natural"`).
 - Errors: 422 "Incorrect filter: x" for an unknown filter; 400 with an **empty body** if no filters are given, and an HTML 400 for invalid JSON; 403 when credits are exhausted or the key is unauthorized.
 - Silent no-ops: `http.title` is accepted but ignored (use `http_title`); non-numeric `asn`, `port` and `http_status_code` are dropped; `page` and `limit` must be JSON integers (`"100"` falls back to 50); `is_dos_defense` matches the strings `"true"`/`"false"`.
 
@@ -251,7 +251,7 @@ Tier any key. Credit 1 on success. Rate 60/min unless noted. Credit exhaustion r
 
 | Route | Params | Response |
 |---|---|---|
-| `GET /nexus/ip-lookup` | `query` (IP or hostname; hostnames are resolved) | `{result{asn, organization, isp, country_code, country_name, city_name, postal_code, cloud_provider, cloud_region, cdn_provider, cdn_region, is_cdn, is_cloud, is_cloudflare, is_private, is_public, is_ipv4, is_ipv6, ip_decimal, ptr[], location_latitude, location_longitude, hosts_count}, query, resolved_host, resolvable, other_ips}`. Errors: 422, and 502 if the upstream fails. |
+| `GET /nexus/ip-lookup` | `query` (IP or hostname; hostnames are resolved) | `{result{asn, organization, isp, country_code, country_name, city_name, postal_code, cloud_provider, cloud_region, cdn_provider, cdn_region, is_cdn, is_cloud, is_cloudflare, is_private, is_public, is_ipv4, is_ipv6, ip_decimal, ptr[], location_latitude, location_longitude, hosts_count}, query, resolved_host, resolvable, other_ips}`. Errors: 422, and 502 if the lookup is temporarily unavailable. |
 | `GET /nexus/tor/check-ip` | `ip` | `{status, error, data{ip_address, first_seen}, count}`; `count` is 1 if Tor |
 | `GET /nexus/cloud-certs/dns-search` | `query` (at least 3 chars, prefix match) | `{status, count, data[{dns[], host, port}]}`, up to 10,000 |
 | `GET /nexus/passive-dns/lookup` | `domain` | `{status, count, data[] (hostnames, up to 10k)}` |
@@ -260,7 +260,7 @@ Tier any key. Credit 1 on success. Rate 60/min unless noted. Credit exhaustion r
 | `GET /nexus/whois/lookup` | `domain` | `{domain, whois_data}`; `whois_data` is `null` if not collected yet |
 | `GET /nexus/whois/search` (30/min) | `registrar`, `nameserver`, `tld`, `status`, `expires_before` (ISO date), `limit` (≤10); at least one filter | `registrar`, `nameserver`, `status` and `expires_before` are ORed (any match); `tld` is ANDed with them. 422 if no filter. |
 
-**Some Nexus failures return HTTP 200 with the error in the body, and are charged:** tor/check-ip (invalid IP: text in `message`), cloud-certs/dns-search (query under 3 chars), domain-collection/lookup (not found) and company-lookup (under 3 chars, or not found). Check the body's `status`, not the HTTP code. Empty or invalid input on cloud-certs and domain-collection returns a real 422.
+**Some Nexus failures return HTTP 200 with the error in the body:** tor/check-ip (invalid IP: text in `message`), cloud-certs/dns-search (query under 3 chars), domain-collection/lookup (not found) and company-lookup (under 3 chars, or not found). Check the body's `status`, not the HTTP code. Empty or invalid input on cloud-certs and domain-collection returns a real 422.
 
 ```bash
 curl -s "$FH_API/nexus/ip-lookup?query=8.8.8.8" "${H[@]}" | jq '.result | {org: .organization, asn, country: .country_name, cloud: .cloud_provider}'
@@ -324,7 +324,7 @@ Tier: enterprise, plus the matching account permission (403 otherwise). No credi
 Tier: enterprise plus the OEM module (403 "OEM API is not enabled for your account" otherwise). **All routes are POST with a JSON body.**
 
 Shared behaviour:
-- **Credits:** routes marked 1 deduct one OEM credit on a 2xx response, including cache hits. The OEM vulnerability, exploit and advisory searches return 200 `[]` on a backend failure and are charged. When OEM credits are exhausted the route returns 403 `{"error": "You have exhausted your OEM API credits"}`.
+- **Credits:** routes marked 1 deduct one OEM credit on a 2xx response, including cache hits. The OEM vulnerability, exploit and advisory searches can return 200 `[]` on a server-side error. When OEM credits are exhausted the route returns 403 `{"error": "You have exhausted your OEM API credits"}`.
 - **Optional body fields:** `query_tags` (object) is stored in your audit log. `no_cache: true` bypasses the 24-hour response cache on cached routes.
 - **Audit log:** every call that passes validation is recorded.
 
@@ -333,7 +333,7 @@ Shared behaviour:
 | `/oem/attack-surface/search` | 1 | 100/h | `type`: `domain` or `ip_range` (CIDR ≤ 4096 addresses; a bare IP becomes /32); `query` | `{response{domain \| ip_range, hosts[≤10k], metadata, whois_data (domain only)}}`; cached 24h (`no_cache` currently ignored) |
 | `/oem/attack-surface/host` | 1 | 60/min | `type`: `host`; `query` (host or IP) | `{response{host, data, metadata}}`; 404 |
 | `/oem/organizations/search` | 1 | 100/h | `type`: `domain` or `organization` (**required**); `query` (3–100) | `{response: [orgs]}` (rich profile: executives, HQ, breaches, subsidiaries); cached |
-| `/oem/darkweb/search` | 1 | 100/h | `type`: one of username, name, email, hostname, mac_address, ip_address, org_alias, bin, cve, domain, password, hashed_password, vin, address, phone; `query`; `no_cache`; optional `from`/`to` (`DD-MM-YYYY`, inclusive, filters on date added; bad or inverted dates return 400) | `{response: [records with hashed_password[], breach_date, date_added (epoch)]}`; `type=cve` returns the NVD record. Empty result is 200 with `[]`. 404 "API request failed" only when the upstream is down and nothing is cached. Max 15k rows. |
+| `/oem/darkweb/search` | 1 | 100/h | `type`: one of username, name, email, hostname, mac_address, ip_address, org_alias, bin, cve, domain, password, hashed_password, vin, address, phone; `query`; `no_cache`; optional `from`/`to` (`DD-MM-YYYY`, inclusive, filters on date added; bad or inverted dates return 400) | `{response: [records with hashed_password[], breach_date, date_added (epoch)]}`; `type=cve` returns the NVD record. Empty result is 200 with `[]`. 404 "API request failed" only when the data source is temporarily unavailable and nothing is cached. Max 15k rows. |
 | `/oem/vulnerabilities/search` | 1 | 60/min | `type`: `host`, `domain` or `ip_range`; `query` | `{query{type, value}, total_results, results[≤10k]}` (platform-discovered vulns) |
 | `/oem/alerts/search` | 1 | 60/min | `type`: `host` or `domain`; `query` | same shape (alerts ledger) |
 | `/oem/historical-hosts/search` | 1 | 60/min | `type`: `host` or `domain`; `query` | same shape (historical host records) |
@@ -373,7 +373,7 @@ curl -s "$FH_API/oem/on-demand-scan" "${H[@]}" "${J[@]}" \
 | 413 | Request body over 1 MiB (HTML body) |
 | 422 | Missing or invalid parameter (intel, nexus, global search filter) |
 | 429 | Rate limited: `{"error": "Rate Limit Exceeded", "message": ...}` |
-| 5xx | Retry with backoff; 502 on nexus upstream failure |
+| 5xx | Retry with backoff; 502 when a Nexus lookup is temporarily unavailable |
 
 **Error body shapes:** `{"message", "success": false}` (auth), `{"status", "message"}`, `{"status", "error"}`, `{"error"}`. Check all of them. Some errors are not JSON: 413 and invalid-JSON 400s are HTML, and global search with no filters returns an empty 400. Unknown paths return `{"error": "Not Found", "message": ...}`.
 

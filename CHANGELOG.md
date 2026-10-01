@@ -3,13 +3,13 @@
 ## 2.1.1 (2026-09-30)
 Fixes from an independent review against the live API (2026-09-30).
 - Advisory and feed `package` filters take `ecosystem/name` (`npm/lodash`).
-- Global search results are raw host documents, not the host object; MCP `global_search` exposes 47 of the 49 REST filters.
+- Global search results use flat host records, not the host object; MCP `global_search` exposes 47 of the 49 REST filters.
 - POST vuln/exploit/advisory search reads form fields only; CVE IDs are case-sensitive (uppercase).
 - OEM scan status: `scan_completed` is the only terminal status (no `in_progress`/`failed`); polling loop fixed.
 - Enterprise `org` parameter is an organization id; alert fields corrected; org delete lists everything it removes.
-- Nexus: whois/search ANDs `tld`; the HTTP-200-with-error cases are listed exactly and are charged.
+- Nexus: whois/search ANDs `tld`; the HTTP-200-with-error cases are listed exactly.
 - `auth_status` returns no plan name; README check uses `user_credits`.
-- Added: OEM accounts pay standard routes from the OEM pool, 24h scan dedup, 413 and non-JSON error bodies, global-search silent no-ops, domain 404s that are charged, MCP result/error wrapping, `oem_darkweb_search` has no date filter, feed vs MCP plan gates.
+- Added: OEM accounts pay standard routes from the OEM pool, 24h scan dedup, 413 and non-JSON error bodies, global-search input rules, MCP result/error wrapping, `oem_darkweb_search` has no date filter, feed vs MCP plan gates.
 - Trigger keywords no longer fire on generic "mcp" / "agentic ai".
 
 ## 2.1.0 (2026-09-30)
@@ -24,11 +24,10 @@ Re-verified every route against the FullHunt API and its OpenAPI specification (
 
 ### Added
 - Endpoints: vulnerability intelligence feed, advisories search (standard and OEM), Nexus WHOIS lookup/search, OEM WHOIS lookup/search, OEM vulnerabilities/alerts/historical-hosts search, OEM feed, and the eight enterprise organization/asset management routes (with safety rules).
-- Access-tier table rebuilt from the API's auth decorators, per-route credit and rate-limit columns, tier result caps.
+- Access-tier table, per-route credit and rate-limit columns, tier result caps.
 - "Known API quirks" section (nexus 200-with-error bodies, intel not paginated, `resolvable_only` ignored, whois OR vs AND, alerts without totals, default 100/hour limit on six OEM routes).
 - Per-family response shapes and error body formats; per-route page sizes.
 - Full MCP tool reference with parameters; Claude Code, Cursor (`~/.cursor/mcp.json`) and Claude Desktop (`mcp-remote`) setup.
-- `scripts/check_drift.py`: fails if the skill's routes or MCP tools drift from the OpenAPI spec and the MCP tool list.
 - `metadata.version` in SKILL.md frontmatter.
 - OEM dark web search `from`/`to` date-added filter (added to the API 2026-09-28).
 

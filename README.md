@@ -74,8 +74,6 @@ fullhunt/
 └── references/
     ├── endpoints.md        # Full API reference with request/response schemas
     └── agentic-ai.md       # MCP tool reference and multi-step query workflows
-scripts/
-└── check_drift.py          # Checks the skill against the API spec and MCP server
 CHANGELOG.md
 ```
 
@@ -92,7 +90,7 @@ After editing `fullhunt/`, rebuild the package: `rm -f fullhunt.skill && zip -r 
 | Nexus | Tor check, passive DNS, cloud cert search, IP lookup, domain collection, WHOIS lookup/search |
 | Attack surface | On-demand scanning (domain, IP, CIDR; enterprise) |
 | Organizations | Company search by name or domain |
-| Global search | 49-filter search across the entire database (any key with credits) |
+| Global search | 49-filter search across all indexed hosts (any key with credits) |
 | Enterprise | Orgs, alerts, vulns, entities, assets, certs, suggested domains, org/asset management |
 | Dark web | Compromised credentials, emails, phishing, typosquatting |
 | OEM | Attack surface, orgs, dark web, WHOIS, vulns, alerts, historical hosts, vuln intel + feed, scanning, account |
