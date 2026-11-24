@@ -164,3 +164,4 @@ Some errors are not JSON and break `jq`: 413 (body over 1 MiB) and invalid-JSON 
 
 - `references/endpoints.md`: every route with params, limits, response fields, tier and credits
 - `references/agentic-ai.md`: MCP setup and the full tool list
+- `references/self-check-recipes.md`: credit-aware workflows for checking your own domains (inventory, exposure, CVE triage, SpiderFoot pairing)
