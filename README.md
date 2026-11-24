@@ -73,7 +73,8 @@ fullhunt/
 ├── SKILL.md                # Main skill definition (endpoint table, usage patterns, jq recipes)
 └── references/
     ├── endpoints.md        # Full API reference with request/response schemas
-    └── agentic-ai.md       # MCP tool reference and multi-step query workflows
+    ├── agentic-ai.md       # MCP tool reference and multi-step query workflows
+    └── self-check-recipes.md  # Credit-aware recipes for assessing your own domains
 CHANGELOG.md
 ```
 

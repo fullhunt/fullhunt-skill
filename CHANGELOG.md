@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- Added `references/self-check-recipes.md`: defensive, credit-budgeted workflows for checking your own domains (preflight, subdomain inventory, live host and port review, CVE/exploit triage, IP/WHOIS/Tor triage, pairing with SpiderFoot's `sfp_fullhunt`). Uses only routes already documented in `endpoints.md`.
+
 ## 2.1.1 (2026-09-30)
 Fixes from an independent review against the live API (2026-09-30).
 - Advisory and feed `package` filters take `ecosystem/name` (`npm/lodash`).
